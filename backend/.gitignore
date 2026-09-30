@@ -1,0 +1,17 @@
+# Dependências (evita enviar os pacotes)
+node_modules/
+
+# Arquivos de compilação do NestJS
+dist/
+
+# Variáveis de ambiente com senhas e segredos
+.env
+.env.*
+!.env.example
+
+# Logs e arquivos do sistema operacional
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+*.log
