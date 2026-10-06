@@ -1,0 +1,330 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum Cargo {
+    USUARIO_COMUM
+    RESOLUTOR
+    ADMINISTRADOR
+    SUPERVISOR
+}
+
+enum UsuarioStatus {
+    ATIVO
+    INATIVO
+    BLOQUEADO
+}
+
+enum Disponibilidade {
+    DISPONIVEL
+    EM_ATENDIMENTO
+    AUSENTE
+}
+
+enum RegistroStatus {
+    PENDENTE
+    APROVADO
+    RECUSADO
+}
+
+enum TicketStatus {
+    ABERTO
+    EM_ANDAMENTO
+    AGUARDANDO
+    FECHADO
+}
+
+enum Prioridade {
+    CRITICA
+    ALTA
+    MEDIA
+    BAIXA
+}
+
+enum AtivosStatus {
+    ATIVO
+    MANUTENCAO
+    INATIVO
+    DESCARTADO
+}
+
+enum TipoNotificacao {
+    NOVO_CADASTRO
+    CHAMADO_ATRIBUIDO
+    CHAMADO_RESPONDIDO
+    CHAMADO_RESOLVIDO
+    SLA_ALERTA
+    SLA_VENCIDO
+}
+
+model Setor {
+    id           String   @id @default(uuid())
+    nome         String   @unique
+    criadoEm     DateTime @default(now())
+    atualizadoEm DateTime @updatedAt
+    apagadoEm    DateTime?
+
+    usuarios    Usuarios[]
+    registros   PedidoRegistro[]
+    tickets     Ticket[]
+
+    @@map("setores")
+}
+
+model Usuarios {
+    id                      String          @id @default(uuid())
+    nome                    String
+    cpfHash                 String          @unique
+    cpfMasked               String
+    email                   String          @unique
+    senhaHash               String
+    cargo                   Cargo           @default(USUARIO_COMUM)
+    status                  UsuarioStatus   @default(ATIVO)
+    disponibilidade         Disponibilidade @default(DISPONIVEL)
+    setorId                 String
+    posicaoTrabalho         String
+    dataNascimento          DateTime?       @db.Date
+    telefone                String?
+    sala                    String?
+    iconeUrl                String?
+    deveMudarSenha          Boolean         @default(true)
+    tentativasLoginFalhadas Int             @default(0)
+    ultimoLoginEm           DateTime?
+    preferenciasUi          Json            @default("{}")
+    preferenciasNot         Json            @default("{}")
+    criadoEm                DateTime        @default(now())
+    atualizadoEm            DateTime        @updatedAt
+
+    setor Setor @relation(fields: [setorId], references: [id])
+
+    ticketsSolicitados  Ticket[]         @relation("TicketSolicitante")
+    ticketsAtribuidos   Ticket[]         @relation("TicketAtribuido")
+    comentarios         TicketComentario[]
+    notificacoes        Notificacao[]
+    audicaoLogs         AudicaoLog[]
+    pedidosRevisados    PedidoRegistro[] @relation("RegistroRevisor")
+    usuarioCriadoDe     PedidoRegistro[] @relation("RegistroCriadoUsuario")
+
+    @@index([cargo, status])
+    @@index([disponibilidade])
+    @@map("users")
+}
+
+model PedidoRegistro {
+    id               String         @id @default(uuid())
+    nome             String
+    cpfHash          String
+    cpfMasked        String
+    email            String
+    setorId          String
+    posicaoId        String
+    dataNascimento   DateTime       @db.Date
+    status           RegistroStatus @default(PENDENTE)
+    revisadoPorId    String?
+    revisadoEm       DateTime?
+    usuarioCriadorId String?        @unique
+    criadoEm         DateTime       @default(now())
+    atualizadoEm     DateTime       @updatedAt
+
+    setor           Setor     @relation(fields: [setorId], references: [id])
+    revisadoPor     Usuarios? @relation("RegistroRevisor", fields: [revisadoPorId], references: [id])
+    usuarioCriador  Usuarios? @relation("RegistroCriadoUsuario", fields: [usuarioCriadorId], references: [id])
+
+    @@index([status])
+    @@index([cpfHash])
+    @@map("pedido_registro")
+}
+
+model Permissao {
+    id        String @id @default(uuid())
+    chave     String @unique
+    etiqueta  String
+    descricao String?
+
+    cargos PermissaoCargo[]
+
+    @@map("permissoes")
+}
+
+model PermissaoCargo {
+    cargo       Cargo
+    permissaoId String
+    concedido   Boolean @default(false)
+
+    permissao Permissao @relation(fields: [permissaoId], references: [id], onDelete: Cascade)
+
+    @@id([cargo, permissaoId])
+    @@map("cargo_permissao")
+}
+
+model Categoria {
+    id           String   @id @default(uuid())
+    nome         String   @unique
+    ativo        Boolean  @default(true)
+    criadoEm     DateTime @default(now())
+    atualizadoEm DateTime @updatedAt
+    deletadoEm   DateTime?
+
+    tickets Ticket[]
+
+    @@map("categorias")
+}
+
+model PoliticaSla {
+    prioridade      Prioridade @id
+    horasResposta   Int
+    horasResolucao  Int
+    atualizadoEm    DateTime @updatedAt
+
+    @@map("politica_sla")
+}
+
+model Ticket {
+    id            String       @id @default(uuid())
+    numero        Int          @unique @default(autoincrement())
+    titulo        String
+    descricao     String
+    status        TicketStatus @default(ABERTO)
+    prioridade    Prioridade
+    categoriaId   String
+    setorId       String
+    solicitanteId String
+    atribuidoId   String?
+    ativoId       String?
+    telefone      String?
+    sala          String?
+
+    slaComecouEm        DateTime @default(now())
+    respostaPrevistaEm  DateTime
+    resolucaoPrevisaoEm DateTime
+    primeiraRespostaEm  DateTime?
+    slaPausadoEm        DateTime?
+    slaPauseTotalSeg    Int      @default(0)
+    respostaQuebraEm    DateTime?
+    solucaoQuebraEm     DateTime?
+
+    solucionadoEm   DateTime?
+    fechadoEm       DateTime?
+    criadoEm        DateTime @default(now())
+    atualizadoEm    DateTime @updatedAt
+    deletadoEm      DateTime?
+
+    categoria    Categoria  @relation(fields: [categoriaId], references: [id])
+    setor        Setor      @relation(fields: [setorId], references: [id])
+    solicitante  Usuarios   @relation("TicketSolicitante", fields: [solicitanteId], references: [id])
+    atribuido    Usuarios?  @relation("TicketAtribuido", fields: [atribuidoId], references: [id])
+    ativos       Ativo?     @relation(fields: [ativoId], references: [id])
+    comentarios  TicketComentario[]
+    notificacoes Notificacao[]
+    evento TicketEvento[]
+
+    @@index([status, prioridade])
+    @@index([solicitanteId])
+    @@index([atribuidoId, status])
+    @@index([resolucaoPrevisaoEm])
+    @@map("tickets")
+}
+
+model TicketComentario {
+    id              String      @id @default(uuid())
+    ticketId        String
+    autorId         String
+    corpo           String
+    interna         Boolean     @default(false)
+    criadoEm        DateTime    @default(now())
+    atualizadoEm    DateTime    @updatedAt
+    deletadoEm      DateTime?
+
+    ticket Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+    autor Usuarios  @relation(fields: [autorId], references: [id])
+
+    @@index([ticketId, criadoEm])
+    @@map("ticket_comentario")
+}
+
+model TicketEvento {
+    id          String @id @default(uuid())
+    ticketId    String
+    autorId     String?
+    tipo        String
+    doValor     String?
+    paraValor   String?
+    motivo      String?
+    criadoEm    DateTime @default(now())
+
+    ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+    @@index([ticketId, criadoEm])
+    @@map("ticket_eventos")
+}
+model Ativo {
+    id                      String          @id @default(uuid())
+    nome                    String
+    tipo                    String
+    modeloMarca             String?
+    numeroSerie             String?         @unique
+    status                  AtivosStatus    @default(ATIVO)
+    nomeResponsabilidade    String?
+    departamento            String?
+    adquiridoEm             DateTime?       @db.Date
+    criadoEm                DateTime?       @default(now())
+    atualizadoEm            DateTime        @updatedAt
+    deletadoEm              DateTime?
+
+    tickets Ticket[]
+
+    @@index([status])
+    @@index([tipo])
+    @@map("ativos")
+}
+
+model Notificacao {
+    id              String      @id @default(uuid())
+    usuarioId       String
+    tipo            TipoNotificacao
+    titulo          String
+    menssagem       String
+    ticketId        String?
+    data            Json?
+    lidoEm          DateTime?
+    criadoEm        DateTime    @default(now())
+    atualizadoEm    DateTime    @updatedAt
+
+    usuario Usuarios    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+    ticket Ticket?      @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+    @@index([usuarioId, lidoEm])
+    @@map("notificacoes")
+}
+
+model AudicaoLog {
+    id          String @id @default(uuid())
+    usuarioId   String?
+    evento      String
+    acao        String
+    entidade    String?
+    entidadeId  String?
+    metadata    Json?
+    enderecoIp  String?
+    criadoEm    DateTime @default(now())
+
+    usuario Usuarios? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+    @@index([criadoEm])
+    @@index([usuarioId])
+    @@index([acao])
+    @@map("audicao_log")
+}
+
+model ConfiguracaoSistema {
+    chave           String @id
+    valor           Json
+    atualizadoEm    DateTime @updatedAt
+
+    @@map("configuracoes_sistema")
+}
