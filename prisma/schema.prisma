@@ -69,14 +69,14 @@ model Setor {
     atualizadoEm DateTime @updatedAt
     apagadoEm    DateTime?
 
-    usuarios    Usuarios[]
+    usuarios    Usuario[]
     registros   PedidoRegistro[]
     tickets     Ticket[]
 
     @@map("setores")
 }
 
-model Usuarios {
+model Usuario {
     id                      String          @id @default(uuid())
     nome                    String
     cpfHash                 String          @unique
@@ -87,18 +87,20 @@ model Usuarios {
     status                  UsuarioStatus   @default(ATIVO)
     disponibilidade         Disponibilidade @default(DISPONIVEL)
     setorId                 String
-    posicaoTrabalho         String
+    nomePosicao             String
     dataNascimento          DateTime?       @db.Date
     telefone                String?
     sala                    String?
     iconeUrl                String?
     deveMudarSenha          Boolean         @default(true)
     tentativasLoginFalhadas Int             @default(0)
+    travadoAte              DateTime?
     ultimoLoginEm           DateTime?
     preferenciasUi          Json            @default("{}")
     preferenciasNot         Json            @default("{}")
     criadoEm                DateTime        @default(now())
     atualizadoEm            DateTime        @updatedAt
+    deletadoEm              DateTime?
 
     setor Setor @relation(fields: [setorId], references: [id])
 
@@ -122,7 +124,7 @@ model PedidoRegistro {
     cpfMasked        String
     email            String
     setorId          String
-    posicaoId        String
+    nomePosicao      String
     dataNascimento   DateTime       @db.Date
     status           RegistroStatus @default(PENDENTE)
     revisadoPorId    String?
@@ -132,8 +134,8 @@ model PedidoRegistro {
     atualizadoEm     DateTime       @updatedAt
 
     setor           Setor     @relation(fields: [setorId], references: [id])
-    revisadoPor     Usuarios? @relation("RegistroRevisor", fields: [revisadoPorId], references: [id])
-    usuarioCriador  Usuarios? @relation("RegistroCriadoUsuario", fields: [usuarioCriadorId], references: [id])
+    revisadoPor     Usuario? @relation("RegistroRevisor", fields: [revisadoPorId], references: [id])
+    usuarioCriador  Usuario? @relation("RegistroCriadoUsuario", fields: [usuarioCriadorId], references: [id])
 
     @@index([status])
     @@index([cpfHash])
@@ -216,8 +218,8 @@ model Ticket {
 
     categoria    Categoria  @relation(fields: [categoriaId], references: [id])
     setor        Setor      @relation(fields: [setorId], references: [id])
-    solicitante  Usuarios   @relation("TicketSolicitante", fields: [solicitanteId], references: [id])
-    atribuido    Usuarios?  @relation("TicketAtribuido", fields: [atribuidoId], references: [id])
+    solicitante  Usuario    @relation("TicketSolicitante", fields: [solicitanteId], references: [id])
+    atribuido    Usuario?   @relation("TicketAtribuido", fields: [atribuidoId], references: [id])
     ativos       Ativo?     @relation(fields: [ativoId], references: [id])
     comentarios  TicketComentario[]
     notificacoes Notificacao[]
@@ -241,7 +243,7 @@ model TicketComentario {
     deletadoEm      DateTime?
 
     ticket Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-    autor Usuarios  @relation(fields: [autorId], references: [id])
+    autor  Usuario  @relation(fields: [autorId], references: [id])
 
     @@index([ticketId, criadoEm])
     @@map("ticket_comentario")
@@ -272,7 +274,7 @@ model Ativo {
     nomeResponsabilidade    String?
     departamento            String?
     adquiridoEm             DateTime?       @db.Date
-    criadoEm                DateTime?       @default(now())
+    criadoEm                DateTime        @default(now())
     atualizadoEm            DateTime        @updatedAt
     deletadoEm              DateTime?
 
@@ -295,7 +297,7 @@ model Notificacao {
     criadoEm        DateTime    @default(now())
     atualizadoEm    DateTime    @updatedAt
 
-    usuario Usuarios    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+    usuario Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
     ticket Ticket?      @relation(fields: [ticketId], references: [id], onDelete: SetNull)
 
     @@index([usuarioId, lidoEm])
@@ -313,7 +315,7 @@ model AudicaoLog {
     enderecoIp  String?
     criadoEm    DateTime @default(now())
 
-    usuario Usuarios? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+    usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 
     @@index([criadoEm])
     @@index([usuarioId])
