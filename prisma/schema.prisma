@@ -81,6 +81,7 @@ model Usuario {
     nome                    String
     cpfHash                 String          @unique
     cpfMasked               String
+    cpfEncrypted            String
     email                   String          @unique
     senhaHash               String
     cargo                   Cargo           @default(USUARIO_COMUM)
@@ -122,6 +123,7 @@ model PedidoRegistro {
     nome             String
     cpfHash          String
     cpfMasked        String
+    cpfEncrypted     String
     email            String
     setorId          String
     nomePosicao      String
