@@ -1,4 +1,4 @@
-import {plainToInstance} from 'class-transformer'
+import {plainToInstance} from 'class-transformer';
 
 import {
     IsEnum,
@@ -28,7 +28,7 @@ class EnvironmentVariables {
 
     @IsString()
     @IsNotEmpty()
-    CORS_ORIGIN: string = 'http://localhost:5173'
+    CORS_ORIGIN: string = 'http://localhost:5173';
 
     @IsString()
     @IsNotEmpty()
@@ -36,7 +36,7 @@ class EnvironmentVariables {
 
     @IsString()
     @IsNotEmpty()
-    REDIS_HOST: string = 'localhost'
+    REDIS_HOST: string = 'localhost';
 
     @IsInt()
     @Min(1)
@@ -65,7 +65,7 @@ class EnvironmentVariables {
     @IsInt()
     @Min(4)
     @Max(15)
-    BCRYOT_ROUNDS: number = 10;
+    BCRYPT_ROUNDS: number = 10;
 
     @IsString()
     @MinLength(32)
@@ -87,7 +87,7 @@ export function validateEnv(config: Record<string, unknown>){
         const details = errors
             .map((e) => ` - ${e.property}: ${Object.values(e.constraints ?? {}).join(', ')}`)
             .join('\n');
-        throw new Error(`Variáveis de ambiente inválidas: \n${details}`);
+        throw new Error(`Variáveis de ambiente inválidas:\n${details}`);
     }
 
     return config;
