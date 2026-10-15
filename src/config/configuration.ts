@@ -23,6 +23,8 @@ export default () => ({
     security: {
         bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS ?? '10', 10),
         cpfHashSecrect: process.env.CPF_HASH_SECRET as string,
+        cpfEncryptionKey: process.env.CPF_ENCRYPTION_KEY as string,
+        cpfStrictValidation: process.env.CPF_STRICT_VALIDATION !== 'false',
     },
 
     upload: {

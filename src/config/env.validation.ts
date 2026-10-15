@@ -9,6 +9,8 @@ import {
     Min,
     MinLength,
     validateSync,
+    IsBooleanString,
+    Matches,
 } from 'class-validator';
 
 enum Environment {
@@ -70,6 +72,13 @@ class EnvironmentVariables {
     @IsString()
     @MinLength(32)
     CPF_HASH_SECRET: string;
+
+    @IsString()
+    @Matches(/^[0-9a-fA-F]{64}$/, { message: 'deve ter 64 caracteres hexadecimais' })
+    CPF_ENCRYPTION_KEY: string;
+
+    @IsBooleanString()
+    CPF_STRICT_VALIDATION: string = 'true';
 
     @IsString()
     @IsNotEmpty()
